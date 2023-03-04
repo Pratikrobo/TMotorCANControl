@@ -7,10 +7,10 @@ import numpy as np
 Pdes = 0
 Vdes = 0
 
-P = 2
+P = 1.5
 D = 0.3
 
-with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=0) as dev:
+with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=24) as dev:
     loop = SoftRealtimeLoop(dt=0.002, report=True, fade=0.0)
     dev.set_zero_position()
     

@@ -4,9 +4,10 @@ import time
 import csv
 import numpy as np
 from sys import path
-path.append("/home/pi/TMotorCANControl/src/")
-from TMotorCANControl.servo_can import TMotorManager_servo
-from TMotorCANControl.test.servo_serial.Serial_manager_servo import *
+path.append("~/TMotorCANControl/src/")
+from TMotorCANControl.servo_can import TMotorManager_servo_can
+from TMotorCANControl.servo_serial import *
+#from TMotorCANControl.test.servo_serial.Serial_manager_servo import *
 import serial
 
 
@@ -49,16 +50,17 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
     writer = csv.writer(fd)
     writer.writerow(["timestamp (epoch)", "loop time (s)", "des velocity", "velocity (Rad/S)", "ADC Voltage (V)", "Futek Torque (Nm)", "Antagonist Q-Current (A)", "i_bus", "v_bus", "v_q", "i_q", "duty", "mosfet_temp","i_d","v_d","error"])
     
-    with TMotorManager_servo(motor_type='AK80-9', motor_ID=0, CSV_file="log.csv") as dev:
-        with serial.Serial("/dev/ttyUSB0", 961200, timeout=100) as ser:
-            with ADC_Manager('ADC_backup_log.csv') as adc:
+    with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=31, CSV_file="log.csv") as dev:  # Driven
+        with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as ser:                     # Driving
+            with ADC_Manager('ADC_backup_log.csv') as adc:                                  # FUTEK
                 adc.update()
-                params = servo_motor_serial_state()
-                ser.write(bytearray(startup_sequence()))
-                ser.write(bytearray(set_motor_parameter_return_format_all()))
-
+                params = servo_serial_motor_state()
+                #ser.write(bytearray(startup_sequence()))
+                #ser.write(bytearray(set_motor_parameter_return_format_all()))
+                
                 loop = SoftRealtimeLoop(dt=0.05, report=True, fade=0.0)
                 dev.enter_velocity_control()
+                ser.enter_velocity_control()
                 i = 0
                 t_next = step_duration
                 print("testing with: {} rad\s".format(speed_test_array[i]))
@@ -66,7 +68,7 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                 for t in loop:
                     adc.update()
 
-                    if t >= t_next:
+                    """if t >= t_next:
                         t_next += step_duration
                         i += 1
                         if i < num_iters:
@@ -74,18 +76,22 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                         else:
                             break
 
-                    dev.θd = speed_test_array[i]
-                    dev.update()
-                    
+                    #dev.θd = speed_test_array[i]
+                    #dev.update()
+                    """
+                    ser.set_output_velocity_radians_per_second(speed_test_array[i])
+                    print(t)
+                    ser.update()
                     # put this into an "update" function later and run ascynch
-                    data = read_packet(ser)
-                    if len(data):
-                        p = parse_motor_parameters(data)
-                        if p.initialized:
-                            params = p
-                    ser.write(bytearray(get_motor_parameters()))
+                    #data = read_packet(ser)
+                    #if len(data):
+                    #    p = parse_motor_parameters(data)
+                    #    if p.initialized:
+                    #        params = p
+                    #ser.write(bytearray(comm_get_motor_parameters()))
+          
 
-                    writer.writerow([time.time(), t, speed_test_array[i], dev.θd, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature, params.id_current, params.Vd, params.error])
+                    #writer.writerow([time.time(), t, speed_test_array[i], dev.θd, adc.volts, volt_to_torque(adc.volts, bias=bias), iq_antagonist, params.input_current, params.input_voltage, params.Vq, params.iq_current, params.duty, params.mos_temperature, params.id_current, params.Vd, params.error])
                     # print("\r" + str(dev), end='')
 
 

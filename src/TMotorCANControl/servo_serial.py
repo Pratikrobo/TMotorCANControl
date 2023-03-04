@@ -15,15 +15,15 @@ Servo_Params_Serial = {
         'Type' : 'AK80-9', # name of motor to print out in diagnostics
         'P_min' : -58.85, # rad (-58.85 rad limit)
         'P_max' : 58.85, # rad (58.85 rad limit)
-        'V_min' : -20.0, # rad/s (-58.18 rad/s limit)
-        'V_max' : 20.0, # rad/s (58.18 rad/s limit)
+        'V_min' : -40.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 40.0, # rad/s (58.18 rad/s limit)
         'Curr_min' : -15.0,# A (-60A is the acutal limit)
         'Curr_max' : 15.0, # A (60A is the acutal limit)
         'Temp_max' : 40.0, # max mosfet temp in deg C
-        'Kt': 0.115, # Nm before gearbox per A of qaxis current
+        'Kt': 0.091, # Nm before gearbox per A of qaxis current
         'GEAR_RATIO': 9, # 9:1 gear ratio
         'NUM_POLE_PAIRS' : 21 # 21 pole pairs
-    }        
+    }             
 }
 """
 Dictionary with the default parameters for the motors, indexed by their name
@@ -528,7 +528,7 @@ class TMotorManager_servo_serial():
     used in the "context" of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9'], max_mosfett_temp = 50,):
+    def __init__(self, motor_type='AK80-9', port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9'], max_mosfett_temp = 50,):
         """
         Initialize the motor manager. Note that this will not turn on the motor, 
         until __enter__ is called (automatically called in a with block)
@@ -589,11 +589,11 @@ class TMotorManager_servo_serial():
 
             # tell the motor to send back all parameters
             # TODO expand to allow user to only request some data, could be faster
-            self.set_motor_parameter_return_format_all()
+            self.comm_set_motor_parameter_return_format_all()
             self.send_command()
 
             # tell motor to send current position (for some reason current position is not in the other parameters)
-            self.begin_position_feedback()
+            self.comm_begin_position_feedback()
             self.send_command()
 
             # don't do anything else
@@ -621,7 +621,7 @@ class TMotorManager_servo_serial():
         self._reader_thread.stop() 
 
         # power down motor
-        self._ser.write(self.set_duty_cycle(0.0)) 
+        self._ser.write(self.comm_set_duty_cycle(0.0)) 
 
         # end serial connection
         self._ser.close() 
@@ -635,9 +635,9 @@ class TMotorManager_servo_serial():
         For now, just sends some parameter read commands and waits 0.2 seconds to
         see if we got a response.
         """
-        self._send_specific_command(self.get_motor_parameters())
-        self._send_specific_command(self.get_motor_parameters())
-        self._send_specific_command(self.get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
         # slight delay to ensure connection!
         time.sleep(0.2)
         return self._updated_async
@@ -774,7 +774,7 @@ class TMotorManager_servo_serial():
         self.send_command()
 
         # send the command to get parameters (message will be read in other thread)
-        self._send_specific_command(self.get_motor_parameters())
+        self._send_specific_command(self.comm_get_motor_parameters())
         
 
         # synchronize user-facing state with most recent async state
@@ -796,7 +796,7 @@ class TMotorManager_servo_serial():
         There is no official power off command that I can see, so this will
         set the duty cycle to 0.0
         """
-        self.set_duty_cycle(0.0)
+        self.comm_set_duty_cycle(0.0)
         self.send_command()
 
     def enter_idle_mode(self):

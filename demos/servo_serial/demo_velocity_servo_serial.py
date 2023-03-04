@@ -3,7 +3,7 @@ path.append("/home/pi/TMotorCANControl/src/")
 from TMotorCANControl.servo_serial import *
 from NeuroLocoMiddleware.SoftRealtimeLoop import SoftRealtimeLoop
 
-vel = 1
+vel = 2
 
 with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9']) as dev:
         loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
@@ -13,7 +13,8 @@ with TMotorManager_servo_serial(port = '/dev/ttyUSB0', baud=961200, motor_params
         dev.update()
         
         for t in loop:
-            dev.set_output_velocity_radians_per_second(vel)
+            dev.set_output_velocity_radians_per_second(t)
+            #print(t)
             dev.update()
             print(f"\r {dev}", end='')
 

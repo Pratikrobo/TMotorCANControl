@@ -49,7 +49,8 @@ Servo_Params = {
             'Kt_TMotor' : 0.16, # from TMotor website (actually 1/Kvll)
             'Current_Factor' : 0.59, # UNTESTED CONSTANT!
             'Kt_actual': 0.206, # UNTESTED CONSTANT!
-            'GEAR_RATIO': 9.0, 
+            'GEAR_RATIO': 9.0,
+            'NUM_POLE_PAIRS': 21, 
             'Use_derived_torque_constants': False, # true if you have a better model
         },
         'AK80-9':{
@@ -409,6 +410,7 @@ class CAN_Manager_servo(object):
             controller_id: CAN ID of the motor to send the message to
             duty: duty cycle (-1 to 1) to use
         """
+        send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, np.int32(duty * 100000.0))
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_DUTY'] << 8), buffer, send_index)
@@ -423,6 +425,7 @@ class CAN_Manager_servo(object):
             controller_id: CAN ID of the motor to send the message to
             current: current in Amps to use (-60 to 60)
         """
+        send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, np.int32(current * 1000.0))
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT'] << 8), buffer, send_index)
@@ -437,6 +440,7 @@ class CAN_Manager_servo(object):
             controller_id: CAN ID of the motor to send the message to
             current: current in Amps to use (0 to 60)
         """
+        send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, np.int32(current * 1000.0))
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_CURRENT_BRAKE'] << 8), buffer, send_index)
@@ -451,6 +455,7 @@ class CAN_Manager_servo(object):
             controller_id: CAN ID of the motor to send the message to
             rpm: velocity in ERPM (-100000 to 100000)
         """
+        send_index = 0
         buffer=[]
         self.buffer_append_int32(buffer, np.int32(rpm))
         self.send_servo_message(controller_id| (Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_RPM'] << 8), buffer, send_index)
@@ -467,7 +472,7 @@ class CAN_Manager_servo(object):
         """
         send_index = 0
         buffer=[]
-        self.buffer_append_int32(buffer, np.int32(pos * 1000000.0), send_index)
+        self.buffer_append_int32(buffer, np.int32(pos * 1000000.0))
         self.send_servo_message(controller_id|(Servo_Params['CAN_PACKET_ID']['CAN_PACKET_SET_POS'] << 8), buffer, send_index)
     
     #Set origin mode
@@ -572,7 +577,7 @@ class TMotorManager_servo_can():
     used in the context of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', motor_ID=1, max_mosfett_temp = 50, CSV_file=None, log_vars = LOG_VARIABLES):
+    def __init__(self, motor_type='AK10-9', motor_ID=24, max_mosfett_temp = 50, CSV_file=None, log_vars = LOG_VARIABLES):
         """
         Sets up the motor manager. Note the device will not be powered on by this method! You must
         call __enter__, mostly commonly by using a with block, before attempting to control the motor.
@@ -861,7 +866,7 @@ class TMotorManager_servo_can():
         self._control_state = _TMotorManState_Servo.IDLE
 
     # used for either impedance or MIT mode to set output angle
-    def set_output_angle_radians(self, pos, vel, acc):
+    def set_output_angle_radians(self, pos):
         """
         Update the current command to the desired position, when in position or position-velocity mode.
         Note, this does not send a command, it updates the TMotorManager's saved command,
@@ -872,6 +877,8 @@ class TMotorManager_servo_can():
             vel: The desired speed to get there in rad/s (when in POSITION_VELOCITY mode)
             acc: The desired acceleration to get there in rad/s/s, ish (when in POSITION_VELOCITY mode)
         """
+        vel= self._motor_state.velocity*Servo_Params[self.type]["GEAR_RATIO"]
+        acc = self._motor_state.acceleration*Servo_Params[self.type]["GEAR_RATIO"]
         if np.abs(pos) >= Servo_Params[self.type]["P_max"]:
             raise RuntimeError("Cannot control using impedance mode for angles with magnitude greater than " + str(Servo_Params[self.type]["P_max"]) + "rad!")
         
@@ -889,13 +896,18 @@ class TMotorManager_servo_can():
 
     def set_duty_cycle_percent(self, duty):
         """
-        Used for duty cycle mode, to set desired duty cycle.
+        Used for duty cycle control.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
 
         Args:
             duty: The desired duty cycle, (-1 to 1)
         """
+        if duty>1:
+            duty = 1
+        elif duty <-1:
+            duty = -1
+
         if self._control_state not in [_TMotorManState_Servo.DUTY_CYCLE]:
             raise RuntimeError("Attempted to send duty cycle command without gains for device " + self.device_info_string()) 
         else:
@@ -905,7 +917,7 @@ class TMotorManager_servo_can():
 
     def set_output_velocity_radians_per_second(self, vel):
         """
-        Used for velocity mode to set output velocity command.
+        Used for either speed or full state feedback mode to set output velocity command.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
 
@@ -922,7 +934,7 @@ class TMotorManager_servo_can():
     # used for either current MIT mode to set current
     def set_motor_current_qaxis_amps(self, current):
         """
-        Used for current mode to set current command.
+        Used for either current or full state feedback mode to set current command.
         Note, this does not send a command, it updates the TMotorManager's saved command,
         which will be sent when update() is called.
         
@@ -936,7 +948,7 @@ class TMotorManager_servo_can():
     # used for either current or MIT Mode to set current, based on desired torque
     def set_output_torque_newton_meters(self, torque):
         """
-        Used for current mode to set current, based on desired torque.
+        Used for either current or MIT Mode to set current, based on desired torque.
         If a more complicated torque model is available for the motor, that will be used.
         Otherwise it will just use the motor's torque constant.
         
@@ -948,7 +960,7 @@ class TMotorManager_servo_can():
     # motor-side functions to account for the gear ratio
     def set_motor_torque_newton_meters(self, torque):
         """
-        Wrapper of set_output_torque that accounts for gear ratio to control motor-side torque
+        Version of set_output_torque that accounts for gear ratio to control motor-side torque
         
         Args:
             torque: The desired motor-side torque in Nm.
@@ -1027,6 +1039,7 @@ class TMotorManager_servo_can():
         Returns:
             True if a connection is established and False otherwise.
         """
+        #print("HELLO")
         if not self._entered:
             raise RuntimeError("Tried to check_can_connection before entering motor control! Enter control using the __enter__ method, or instantiating the TMotorManager in a with block.")
         Listener = can.BufferedReader()
@@ -1035,11 +1048,11 @@ class TMotorManager_servo_can():
             self.power_on()
             time.sleep(0.001)
         success = True
-        # time.sleep(0.1)
-        # for i in range(10):
-        #     if Listener.get_message(timeout=0.1) is None:
-        #         success = False
-        # self._canman.notifier.remove_listener(Listener)
+        time.sleep(0.1)
+        for i in range(10):
+            if Listener.get_message(timeout=0.1) is None:
+                success = False
+        self._canman.notifier.remove_listener(Listener)
         return success
 
     # controller variables
@@ -1048,7 +1061,6 @@ class TMotorManager_servo_can():
 
     error = property(get_motor_error_code, doc="temperature_degrees_C")
     """Motor error code. 0 means no error.
-    
     Codes:
         0 : 'No Error',
         1 : 'Over temperature fault',
