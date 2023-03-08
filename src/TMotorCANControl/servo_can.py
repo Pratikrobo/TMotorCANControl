@@ -694,8 +694,10 @@ class TMotorManager_servo_can():
         This method is called by the user to synchronize the current state used by the controller/logger
         with the most recent message recieved, as well as to send the current command.
         """
+        command_rec = True
         # check that the motor is safely turned on
         if not self._entered:
+            #command_rec = False
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
 
         if self.get_temperature_celsius() > self.max_temp:
@@ -703,6 +705,7 @@ class TMotorManager_servo_can():
         # check that the motor data is recent
         now = time.time()
         if (now - self._last_command_time) < 0.25 and ( (now - self._last_update_time) > 0.1):
+            command_rec = False
             warnings.warn("State update requested but no data from motor. Delay longer after zeroing, decrease frequency, or check connection. " + self.device_info_string(), RuntimeWarning)
         else:
             self._command_sent = False
@@ -718,6 +721,7 @@ class TMotorManager_servo_can():
             self.csv_writer.writerow([self._last_update_time - self._start_time] + [self.LOG_FUNCTIONS[var]() for var in self.log_vars])
 
         self._updated = False
+        return command_rec
         
     # sends a command to the motor depending on whats controlm mode the motor is in
     def _send_command(self):
@@ -1053,6 +1057,9 @@ class TMotorManager_servo_can():
             if Listener.get_message(timeout=0.1) is None:
                 success = False
         self._canman.notifier.remove_listener(Listener)
+        
+        if not self.update():
+            success = False
         return success
 
     # controller variables

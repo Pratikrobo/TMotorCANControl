@@ -5,7 +5,7 @@ from TMotorCANControl.mit_can import TMotorManager_mit_can
 
 # CHANGE THESE TO MATCH YOUR DEVICE!
 Type = 'AK10-9'
-ID = 1
+ID = 31
 
 def position_tracking(dev):
     dev.set_zero_position() # has a delay!

@@ -8,9 +8,9 @@ Pdes = 0
 Vdes = 0
 
 P = 1.5
-D = 0.3
+D = 1.0
 
-with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=24) as dev:
+with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=21) as dev:
     loop = SoftRealtimeLoop(dt=0.002, report=True, fade=0.0)
     dev.set_zero_position()
     
@@ -19,7 +19,7 @@ with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=24) as dev:
     time.sleep(1)
     
     for t in loop:
-        Pdes = 3*np.sin(t)
+        Pdes = 5*np.sin(t)
         cmd =  P*(dev.position - Pdes) + D*(Vdes - dev.velocity)
         dev.current_qaxis = cmd
         dev.update()
