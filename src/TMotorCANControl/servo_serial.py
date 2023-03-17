@@ -23,7 +23,20 @@ Servo_Params_Serial = {
         'Kt': 0.091, # Nm before gearbox per A of qaxis current
         'GEAR_RATIO': 9, # 9:1 gear ratio
         'NUM_POLE_PAIRS' : 21 # 21 pole pairs
-    }             
+    },
+        'AK10-9': {
+        'Type' : 'AK10-9', # name of motor to print out in diagnostics
+        'P_min' : -58.85, # rad (-58.85 rad limit)
+        'P_max' : 58.85, # rad (58.85 rad limit)
+        'V_min' : -40.0, # rad/s (-58.18 rad/s limit)
+        'V_max' : 40.0, # rad/s (58.18 rad/s limit)
+        'Curr_min' : -15.0,# A (-60A is the acutal limit)
+        'Curr_max' : 15.0, # A (60A is the acutal limit)
+        'Temp_max' : 40.0, # max mosfet temp in deg C
+        'Kt': 0.091, # Nm before gearbox per A of qaxis current
+        'GEAR_RATIO': 9, # 9:1 gear ratio
+        'NUM_POLE_PAIRS' : 21 # 21 pole pairs
+    }              
 }
 """
 Dictionary with the default parameters for the motors, indexed by their name
@@ -528,7 +541,7 @@ class TMotorManager_servo_serial():
     used in the "context" of a with as block, in order to safely enter/exit
     control of the motor.
     """
-    def __init__(self, motor_type='AK80-9', port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK80-9'], max_mosfett_temp = 50,):
+    def __init__(self, motor_type='AK10-9', port = '/dev/ttyUSB0', baud=961200, motor_params=Servo_Params_Serial['AK10-9'], max_mosfett_temp = 50,):
         """
         Initialize the motor manager. Note that this will not turn on the motor, 
         until __enter__ is called (automatically called in a with block)
@@ -539,6 +552,7 @@ class TMotorManager_servo_serial():
             motor_params: A parameter dictionary defining the motor parameters, as defined above.
             max_mosfett_temp: Temperature of the mosfett above which to throw an error, in Celsius
         """
+        motor_params=Servo_Params_Serial[motor_type]
         self.motor_params = motor_params
         self.port = port
         self.baud = baud
@@ -767,7 +781,7 @@ class TMotorManager_servo_serial():
         if not self._entered:
             raise RuntimeError("Tried to update motor state before safely powering on for device: " + self.device_info_string())
         
-        if self.get_temperature_celsius() > self.max_temp:
+        if self.get_motor_temperature_celsius() > self.max_temp:
             raise RuntimeError("Temperature greater than {}C for device: {}".format(self.max_temp, self.device_info_string()))
 
         # send the user specified command
@@ -1024,7 +1038,14 @@ class TMotorManager_servo_serial():
         return cmd
         
     # getters for motor state
-    def get_temperature_celsius(self):
+    def get_motor_temperature_celsius(self):
+        """
+        Returns:
+        The most recently updated motor temperature in degrees C.
+        """
+        return self._motor_state.motor_temperature
+    
+    def get_mosfet_temperature_celsius(self):
         """
         Returns:
         The most recently updated motor temperature in degrees C.
@@ -1081,7 +1102,7 @@ class TMotorManager_servo_serial():
     def get_current_bus_amps(self):
         """
         Returns:
-        The most recently updated qaxis current in amps
+        The most recently updated bus axis current in amps
         """
         return self._motor_state.input_current
 
@@ -1104,7 +1125,7 @@ class TMotorManager_servo_serial():
         Returns:
         The most recently updated input voltage in volts
         """
-        return self._motor_state.input_current
+        return self._motor_state.input_voltage
 
     def get_output_angle_radians(self):
         """
@@ -1126,6 +1147,12 @@ class TMotorManager_servo_serial():
             The most recently updated output acceleration in radians per second per second
         """
         return self._motor_state.acceleration * self.radps_per_ERPM
+
+    @property
+    def data(self):
+        """
+        """
+        return self._motor_state
 
     def get_output_torque_newton_meters(self):
         """
@@ -1298,7 +1325,7 @@ class TMotorManager_servo_serial():
         return f"{self.motor_params['Type']} Port: {self.port}"
 
     # controller variables
-    temperature = property(get_temperature_celsius, doc="temperature_degrees_C")
+    temperature = property(get_motor_temperature_celsius, doc="temperature_degrees_C")
     """Temperature in Degrees Celsius"""
 
     # TODO write actual codes in description here as well

@@ -7,7 +7,7 @@ path.append("/home/pi/TMotorCANControl/src/")
 from TMotorCANControl.servo_can import TMotorManager_servo_can
 import time
 
-with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=11) as dev:
+with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=31) as dev:
     
     loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
     dev.enter_idle_mode()

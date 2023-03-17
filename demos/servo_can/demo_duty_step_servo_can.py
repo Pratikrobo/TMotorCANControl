@@ -8,7 +8,7 @@ from TMotorCANControl.servo_can import TMotorManager_servo_can
 import time
 
 
-with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=31) as dev:
+with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=41) as dev:
     
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     dev.enter_duty_cycle_control()

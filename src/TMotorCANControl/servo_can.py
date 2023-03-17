@@ -685,7 +685,8 @@ class TMotorManager_servo_can():
         self._motor_state_async.acceleration = (servo_state.velocity - self._motor_state_async.velocity)/dt
         self._motor_state_async.set_state_obj(servo_state)
         self._updated = True
-
+   
+    
     
     # this method is called by the user to synchronize the current state used by the controller
     # with the most recent message recieved

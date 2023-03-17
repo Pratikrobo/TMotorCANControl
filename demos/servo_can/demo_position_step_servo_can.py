@@ -9,12 +9,12 @@ import time
 import numpy as np
 
 
-with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=31) as dev:
+with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=41) as dev:
     
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     dev.set_zero_position()
     dev.enter_position_control()
     for t in loop:
-        dev.position = 10
+        dev.position = 1
         dev.update()
         print("\r" + str(dev),end='')

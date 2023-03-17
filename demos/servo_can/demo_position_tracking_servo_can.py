@@ -12,14 +12,14 @@ import time
 import numpy as np
 
 
-with TMotorManager_servo_can(motor_type='AK10-9', motor_ID=21) as dev:
+with TMotorManager_servo_can(motor_type='AK80-9', motor_ID=41) as dev:
     
     loop = SoftRealtimeLoop(dt=0.01, report=True, fade=0.0)
     dev.set_zero_position()
     dev.enter_position_control()
     for t in loop:
         #print("HIIII")
-        dev.position = np.sin(t/10.0) # rad/s
+        dev.position = np.sin(t) # rad/s
         #print(dev.get_output_angle_radians(),"\n")
         dev.update()
        
