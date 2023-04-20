@@ -1,0 +1,2 @@
+timestamp (epoch),loop time (s),des velocity,velocityM (Rad/S),Futek Torque (Nm),v_busM,i_busM,v_qM,i_qM,v_dM,i_dM,accelM,velocityL (Rad/S),v_busL,i_busL,v_qL,i_qL,v_dL,i_dL,accelL
+1680728282.5187244,1680728282,-4.0,-0.0011635528346628863,-0.026030794396820767,22.6,0.0,0.004,0.0,0.004,0.0,-0.0058119360304463765,-0.01628973968528041,22.8,0.0,-0.007,0.0,-0.013,0.0,-0.039953149290705
