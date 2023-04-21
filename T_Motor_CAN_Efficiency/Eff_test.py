@@ -25,7 +25,7 @@ d1 = TMotorManager_servo_serial(motor_type='AK80-9', port = '/dev/ttyUSB1', baud
 SPEED_LIST = [1,4,8,12,16]
 CURRENT_LIST = [1,4,8,12,16]
 
-
+loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
 def run(
         max_current: float = 0.0,
         max_velocity: float = 0.0,
@@ -33,6 +33,7 @@ def run(
         holding_time: float=0.0,
         frequency: int=0
 ):
+    
     pass
 
 # d2.enter_current_control()
@@ -40,12 +41,15 @@ def run(
 # d2.update()
 # d1.update()
 
-loop = SoftRealtimeLoop(dt=0.005, report=True, fade=0.0)
+
+
+speed_pos = 0
+current_pos = 0
 
 for t in loop:
     print(t)
-    for speed in SPEED_LIST:
-        for current in CURRENT_LIST:
-            run(current, speed, 0.5, 1, 0)
+    set_speed = SPEED_LIST[speed_pos]
+    set_current = CURRENT_LIST[current_pos]
+    run(current, speed, 0.5, 1, 0)
 
 
