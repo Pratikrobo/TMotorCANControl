@@ -17,13 +17,27 @@ torque_rating = 100  # 100 Nm = 5 V
 def volt_to_torque(volt, bias=0):
     return (volt-2.5-bias)/2.5*torque_rating
 
+bias = 0
+with ADC_Manager('ADC_backup_log.csv') as adc:
+    adc.update()
+    voltage_cal = []
+    print("Calibrating Loadcell!!!")
+    for i in range(500):
+        adc.update()
+        voltage_cal.append(adc.volts)
+    avg_volt = np.mean(np.array(voltage_cal))
+    bias = avg_volt - 2.5
+    print("Bias: {} V".format(bias))
+    adc.update()
 
 
 d2 = TMotorManager_servo_serial(motor_type='AK10-9', port = '/dev/ttyUSB0', baud=961200)  # Driven, AK10-9
 d1 = TMotorManager_servo_serial(motor_type='AK80-9', port = '/dev/ttyUSB1', baud=961200) # Driving AK80-9
 fd = open("Measuring_efficiency_{}_A_antagonist{}.csv".format(time.time()),'w')
 writer = csv.writer(fd)
-
+writer.writerow(["loop time (s)", "velocity (Rad/S)", "Futek Torque (Nm)","v_bus", "i_bus", "v_q", "i_q", "des_speed", "des_curr"])
+    
+    
 SPEED_LIST = [1,4,8,12,16]
 CURRENT_LIST = [1,4,8,12,16]
 
@@ -54,9 +68,30 @@ def run(
     # Start recording values:
     end_time = loop.time() + holding_time
     while(loop.time() > end_time):
-        
+        writer.writerow([loop.time(), # "loop time (s)"
+                         d1.get_output_velocity_radians_per_second, #"velocity (Rad/S)"
+                         volt_to_torque(adc.volts, bias=bias), #"Futek Torque (Nm)"
+                         d1.get_voltage_bus_volts(), #"v_bus"
+                         d1.get_current_bus_amps(), #"i_bus"
+                         d1.get_voltage_qaxis_volts(), #"v_q"
+                         d1.get_current_qaxis_amps(), #"i_q"
+                         max_velocity, #"des_speed"
+                         max_current #"des_curr"
+                        ])
     
-        
+    # Ramp down to base velocity;
+    end_time = loop.time() + ramp_time
+    d1.set_output_velocity_radians_per_second(base_speed)
+    d1.update()
+    while(loop.time() < end_time):
+        pass
+    # Ramp down to base current
+    end_time = loop.time() + ramp_time
+    d2.current_qaxis = base_current
+    d2.update()
+    while(loop.time() < end_time):
+        pass
+    
     pass
 
 d1.enter_velocity_control()
