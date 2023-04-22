@@ -120,6 +120,7 @@ with open("Measuring_efficiency_{}_A_antagonist{}.csv".format(iq_antagonist,time
                         #    print("DEV DISCONNECTED")
                         ser.update()
                         dev.update()
+                        print(volt_to_torque(adc.volts, bias=bias))
                         # put this into an "update" function later and run ascynch
                         #data = read_packet(ser)
                         #if len(data):

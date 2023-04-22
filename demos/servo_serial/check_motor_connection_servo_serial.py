@@ -4,7 +4,7 @@ from TMotorCANControl.servo_serial import TMotorManager_servo_serial
 Type = 'AK80-9'
 ID = 41
 
-with TMotorManager_servo_serial(motor_type=Type,  port = '/dev/ttyUSB0') as dev:
+with TMotorManager_servo_serial(port = '/dev/ttyUSB3') as dev:
     if dev.check_connection():
         print("\nmotor is successfully connected!\n")
     else:
